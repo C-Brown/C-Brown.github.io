@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE Certification
-date:   2019-03-07
+date:   2019-02-24
 categories: [SLAE, Assembly]
 ---
 
