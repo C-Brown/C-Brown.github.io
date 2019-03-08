@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 6.2 - Shell-Storm Polymorphism - iptables -F
-date:   2019-03-07
+date:   2019-03-05
 categories: [SLAE, Assembly]
 ---
 The 2nd piece of shellcode we will try to create a polymorphic version of will be:\
