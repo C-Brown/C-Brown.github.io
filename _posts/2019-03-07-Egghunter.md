@@ -4,7 +4,7 @@ title: SLAE 3 - Egghunter Shellcode
 date:   2019-03-07
 categories: [SLAE, Assembly]
 ---
-# Creating an egghunter
+## Creating an egghunter
 
 In the past I have read about egghunters so I know their purpose and the general idea of how they work but I have never tried to create one or walk through actual implementation strategies.  Corelan has a great exploit writing series that involves a piece on egghunters in detail: \
 The article references Skape's write up on egghunters and suggests that it should be a good starting point. So, I'll start with Skape's write up, then move to corelan, and then for extra reading.. the heap only egghunter seems interesting.
