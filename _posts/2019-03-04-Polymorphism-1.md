@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 6.1 - Shell-Storm Polymorphism - force reboot
-date:   2019-03-07
+date:   2019-03-04
 categories: [SLAE, Assembly]
 ---
 The first piece of shellcode we will try to create a polymorphic version of will be:\
