@@ -4,6 +4,6 @@ title: About
 permalink: /about/
 ---
 
-I'm Programmer for Python & Django. I've made quite a few web apps, especially on Django. Now, I am doing more on backend.
+I love all things hacking and offensive security.  This blog is just for the fun of sharing what I research and learn in my spare time.
 
-email: agus[at]python.web.id
+email: pwoerTF[at]gmail.com
