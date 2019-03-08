@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 2 - Shell Reverse TCP Shellcode
-date:   2019-03-07
+date:   2019-02-26
 categories: [SLAE, Assembly]
 ---
 ## Creating Shell Reverse TCP Shellcode
