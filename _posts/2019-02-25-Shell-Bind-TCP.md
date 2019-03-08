@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 1 - Shell Bind TCP Shellcode
-date:   2019-03-07
+date:   2019-02-25
 categories: [SLAE, Assembly]
 ---
 The proper steps for a Bind Shell are as follows:
