@@ -1,3 +1,9 @@
+---
+layout: post
+title: SLAE 6.2 - Shell-Storm Polymorphism - iptables -F
+date:   2019-03-07
+categories: [SLAE, Assembly]
+---
 The 2nd piece of shellcode we will try to create a polymorphic version of will be:\
 http://shell-storm.org/shellcode/files/shellcode-361.php
 The original length is 58 bytes, meaning we have up to 87 bytes (no more than 150%).
