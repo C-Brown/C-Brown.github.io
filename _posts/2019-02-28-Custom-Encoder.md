@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 4 - Custom Encoder
-date:   2019-03-07
+date:   2019-02-28
 categories: [SLAE, Assembly]
 ---
 ## Creating a custom encoder
