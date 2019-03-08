@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 5.3 - Metasploit Payload Analysis chmod
-date:   2019-03-07
+date:   2019-03-03
 categories: [SLAE, Assembly]
 ---
 The 3rd msfvenom payload we will analyze is the linux/x86/chmod payload.  
