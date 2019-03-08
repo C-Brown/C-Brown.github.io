@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 5.1 - Metasploit Payload Analysis Exec
-date:   2019-03-07
+date:   2019-03-01
 categories: [SLAE, Assembly]
 ---
 The first metasploit payload for linux x86 that we will analyze will be:
