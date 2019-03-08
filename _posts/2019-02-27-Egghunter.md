@@ -1,7 +1,7 @@
 ---
 layout: post
 title: SLAE 3 - Egghunter Shellcode
-date:   2019-03-07
+date:   2019-02-27
 categories: [SLAE, Assembly]
 ---
 ## Creating an egghunter
