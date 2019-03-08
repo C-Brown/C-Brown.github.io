@@ -1,6 +1,6 @@
 ---
 layout: post
-title: SLAE 1 - Shell Bind TCP Shellcode
+title: SLAE 2 - Shell Reverse TCP Shellcode
 date:   2019-03-07
 categories: [SLAE, Assembly]
 ---
