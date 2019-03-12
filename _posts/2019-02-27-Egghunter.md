@@ -6,10 +6,11 @@ categories: [SLAE, Assembly]
 ---
 ## Creating an egghunter
 
-In the past I have read about egghunters so I know their purpose and the general idea of how they work but I have never tried to create one or walk through actual implementation strategies.  Corelan has a great exploit writing series that involves a piece on egghunters in detail: \
-The article references Skape's write up on egghunters and suggests that it should be a good starting point. So, I'll start with Skape's write up, then move to corelan, and then for extra reading.. the heap only egghunter seems interesting.
-1. http://www.hick.org/code/skape/papers/egghunt-shellcode.pdf \
-2. https://www.corelan.be/index.php/2010/01/09/exploit-writing-tutorial-part-8-win32-egg-hunting/
+In the past I have read about egghunters so I know their purpose and the general idea of how they work but I have never tried to create one or work through actual implementation strategies.  Corelan has a great exploit writing series that involves a piece on egghunters in detail:
+
+The article references Skape's write up on egghunters and suggests that it should be a good starting point. So, I'll start with Skape's write up, move to Corelan, and then for extra reading.. the heap only egghunter seems interesting.
+1. http://www.hick.org/code/skape/papers/egghunt-shellcode.pdf
+2. https://www.corelan.be/index.php/2010/01/09/exploit-writing-tutorial-part-8-win32-egg-hunting
 3. http://r00tin.blogspot.com/2009/03/heap-only-egg-hunter.html 
 
 - Egg size is best at 8 bytes
@@ -29,7 +30,6 @@ The syscall number can be found at /usr/include/asm/unistd.h
 ```c
 #define __NR_access 33
 ```
-
 So our steps are:
 1. Prepare the key we will be searching for (4 bytes since our egg will be the key 2 times in a row)
 2. Prepare the beginning memory address to check
@@ -38,7 +38,7 @@ So our steps are:
 5. First half of egg identified, check address + 4 = key again.  If not, increase memory by 1 and repeat from step 3.
 6. Egg found, pass execution to our identified address
 
-One issue I ran in to was that ECX not getting zero'd out at the start caused the egghunter to fail when checking for valid addresses.  It would return an error that did not match EFAULT which led to the invalid address getting dereferenced -> segfault.  So, a short term solution was to just add the instruction to also zero out ecx.
+One issue I ran in to was that ECX was not getting zero'd out at the start and it caused the egghunter to fail when checking for valid addresses.  It would return an error that did not match EFAULT which led to the invalid address getting dereferenced -> segfault.  So, a quick solution was to just add the instruction to also zero out ecx.
 
 ```asm
 global _start
@@ -79,9 +79,10 @@ inc_addr:
   ; found our egg, pass execution to this address (start of shellcode since scasd increased to AFTER our egg!)
   jmp edi
 ```
-
 Time to test it..
-Compile nasm, check for nulls, add to wrapper.  The wrapper below has the shellcode from the reverse shell (previously made):
+Compile nasm, check for nulls, add to wrapper.  If you'd like to see how to do those steps, they are listed in the previous 2 posts - Shell Bind TCP Shellcode and Shell Reverse TCP Shellcode.  
+
+The wrapper below contains the shellcode from the reverse shell (previously made) inside of the code\[\] array:
 ```c
 #include<stdio.h>
 #include<string.h>
@@ -103,7 +104,7 @@ main()
 
 }
 ```
-You can see that we have adjusted the wrapper a little from previous write ups.  The code array has the egg at the beginning now and we have added the egghunter.  Running strace with the egghunter shows that the egghunter is properly searching all the memory addresses. 
+You can see that we have adjusted the wrapper a little from previous write ups.  The code array has the egg at the beginning now and we have added the egghunter.  Running strace with the egghunter shows that the egghunter is properly searching all the memory addresses. (Output not shown here since it is a lot, but very helpful when testing this out)
 
 Test it:
 ```
