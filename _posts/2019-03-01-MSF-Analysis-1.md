@@ -10,19 +10,30 @@ linux/x86/exec
 
 We will set the payload up to execute the ls command:
 
-msfvenom -p linux/x86/exec CMD=ls -f c\
-[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload\
-[-] No arch selected, selecting arch: x86 from the payload\
-No encoder or badchars specified, outputting raw payload\
-Payload size: 38 bytes\
-Final size of c file: 185 bytes\
-unsigned char buf[] = \
-"\x6a\x0b\x58\x99\x52\x66\x68\x2d\x63\x89\xe7\x68\x2f\x73\x68"\
-"\x00\x68\x2f\x62\x69\x6e\x89\xe3\x52\xe8\x03\x00\x00\x00\x6c"\
+msfvenom -p linux/x86/exec CMD=ls -f c
+
+[-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
+
+[-] No arch selected, selecting arch: x86 from the payload
+
+No encoder or badchars specified, outputting raw payload
+
+Payload size: 38 bytes
+
+Final size of c file: 185 bytes
+
+unsigned char buf[] = 
+
+"\x6a\x0b\x58\x99\x52\x66\x68\x2d\x63\x89\xe7\x68\x2f\x73\x68"
+
+"\x00\x68\x2f\x62\x69\x6e\x89\xe3\x52\xe8\x03\x00\x00\x00\x6c"
+
 "\x73\x00\x57\x53\x89\xe1\xcd\x80";
 
 
-Lets verify that this works.. The usual steps, place the shellcode into the c wrapper and compile it with the proper options.
+Lets verify that this works.. If you'd like to see the steps for using a c wrapper and compiling options to test shellcode, feel free to take a look at the first 2 posts for my SLAE solutions, Shell Bind TCP and Shell Reverse TCP.
+
+Place the shellcode into the c wrapper and compile it with the proper options.
 
 Run it.. 
 ```shell
@@ -36,7 +47,7 @@ Libc	    Strings	exam_docs				execve.nasm	   hello_world_shell.nasm  ia32_includ
 ```
 Looks like it works, let's begin our analysis.
 
-run gdb with our wrapper. Let's check where our shellcode is called.
+To begin I will run gdb with our wrapper. Let's check where our shellcode is called.
 > set disassembly-flavor intel
 
 > disass main
@@ -72,7 +83,7 @@ Dump of assembler code for function main:
 End of assembler dump.
 gdb-peda$ 
 ```
-We can see the "call eax" instruction, which is where our shellcode is called. Lets set a breakpoint there and step in.
+We can see the "call eax" instruction at 0x08048477, which is where our shellcode is called. Let's set a breakpoint there and step in.
 ```nasm
 gdb-peda$ break *0x08048477
 Breakpoint 1 at 0x8048477
@@ -140,7 +151,8 @@ Dump of assembler code for function code:
    0x0804a066 <+38>:	add    BYTE PTR [eax],al
 End of assembler dump.
 ```
-Our point of interest is the syscall at 0x0804a064.\
+Our point of interest is the syscall at 0x0804a064.
+
 We can step through to watch how the syscall is set up.
 ```nasm
 [----------------------------------registers-----------------------------------]
@@ -177,8 +189,10 @@ Legend: code, data, rodata, value
 0x0804a043 in code ()
 gdb-peda$
 ```
-push byte 0xb\
-pop eax\
+push byte 0xb
+
+pop eax
+
 EAX will be the syscall number -> 0xb means that we are calling execve
 ```c
 int execve(const char *filename, char *const argv[], char *const envp[]);
@@ -219,15 +233,21 @@ Legend: code, data, rodata, value
 0x0804a04b in code ()
 gdb-peda$ 
 ```
-cdq\
-push edx\
-pushw 0x632d\
-mov edi, esp\
-This block of instructions is preparing the arguments for the syscall.\
-cdq zero's out edx, then we push it to the stack preparing a null terminated string.\
-pushw 0x632d is pushing '-c' to the stack which is our argument for the command and will go in argv[].\
-mov edi, esp is storing the address for this part of the arguments.  We will come back to edi in a bit when we are setting up ECX.
+cdq
 
+push edx
+
+pushw 0x632d
+
+mov edi, esp
+
+This block of instructions is preparing the arguments for the syscall.
+
+cdq zero's out edx, then we push it to the stack preparing a null terminated string.
+
+pushw 0x632d is pushing '-c' to the stack which is our argument for the command and will go in argv\[\].
+
+mov edi, esp is storing the address for this part of the arguments.  We will come back to edi in a bit when we are setting up ECX.
 ```nasm
 [----------------------------------registers-----------------------------------]
 EAX: 0xb ('\x0b')
@@ -263,11 +283,13 @@ Legend: code, data, rodata, value
 0x0804a057 in code ()
 gdb-peda$
 ```
-push 0x68732f\
-push 0x6e69622f\
-These two push instructions are pushing '/bin/sh' to the stack\
-mov ebx, esp sets our first argument for execve.. filename will be '/bin/sh'
+push 0x68732f
 
+push 0x6e69622f
+
+These two push instructions are pushing '/bin/sh' to the stack
+
+mov ebx, esp sets our first argument for execve.. filename will be '/bin/sh'
 ```nasm
 [----------------------------------registers-----------------------------------]
 EAX: 0xb ('\x0b')
@@ -309,14 +331,17 @@ Legend: code, data, rodata, value
 0x0804a058 in code ()
 gdb-peda$
 ```
-push edx pushes our null byte to the stack\
-call 0x804a060 is where our shellcoding tricks kick in.  It is similar to the jmp-call-pop technique, but we are just calling an address in order to push the next address to the stack (0x804a05d).\
+push edx pushes our null byte to the stack
+
+call 0x804a060 is where our shellcoding tricks kick in.  It is similar to the jmp-call-pop technique, but we are just calling an address in order to push the next address to the stack (0x804a05d).
+
 When we check what is at that address, we see - 
 ```shell
 gdb-peda$ x/x 0x804a05d
 0x804a05d <code+29>:	0x5700736c
 ```
-Little Endian here -- this gives us 6c7300 -> null terminated 'ls' which is the command we used to create this shellcode.\
+Little Endian here -- this gives us 6c7300 -> null terminated 'ls' which is the command we used to create this shellcode.
+
 Looking at our code, we know the next address following our string will be the opcode for 'push edi'.  Let's check to make sure.. the byte following our string is 57 --
 ```shell
 nasm> disas
@@ -325,7 +350,6 @@ ndisasm> 57
 57                       push edi
 ```
 Looks like we are on the right track!
-
 ```nasm
 [----------------------------------registers-----------------------------------]
 EAX: 0xb ('\x0b')
@@ -361,11 +385,18 @@ Legend: code, data, rodata, value
 0x0804a064 in code ()
 gdb-peda$
 ```
-push edi\
-push ebx\
-mov ecx, esp\
-int 0x80\
-EDI was set earlier as a pointer to an address on the stack for the '-c' string.  We push that on the stack so we currently have '-c ls'\
-EBX contains our pointer to an address on the stack for the '/bin/sh' string.  We push that on the stack so we now have '/bin/sh -c ls'\
-mov ecx, esp moves the current stack pointer into ECX so our 2nd argument for execve now holds what we want it to.\
+push edi
+
+push ebx
+
+mov ecx, esp
+
+int 0x80
+
+EDI was set earlier as a pointer to an address on the stack for the '-c' string.  We push that on the stack so we currently have '-c ls'
+
+EBX contains our pointer to an address on the stack for the '/bin/sh' string.  We push that on the stack so we now have '/bin/sh -c ls'
+
+'mov ecx, esp' moves the current stack pointer into ECX so our 2nd argument for execve now holds the proper arguments that we want it to use.
+
 int 0x80 - this launches our execve call -> execve('/bin/sh', '/bin/sh -c ls', 0);
