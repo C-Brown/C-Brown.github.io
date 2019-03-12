@@ -9,27 +9,18 @@ The first metasploit payload for linux x86 that we will analyze will be:
 linux/x86/exec
 
 We will set the payload up to execute the ls command:
-
+```c
 msfvenom -p linux/x86/exec CMD=ls -f c
-
 [-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
-
 [-] No arch selected, selecting arch: x86 from the payload
-
 No encoder or badchars specified, outputting raw payload
-
 Payload size: 38 bytes
-
 Final size of c file: 185 bytes
-
 unsigned char buf[] = 
-
 "\x6a\x0b\x58\x99\x52\x66\x68\x2d\x63\x89\xe7\x68\x2f\x73\x68"
-
 "\x00\x68\x2f\x62\x69\x6e\x89\xe3\x52\xe8\x03\x00\x00\x00\x6c"
-
 "\x73\x00\x57\x53\x89\xe1\xcd\x80";
-
+```
 
 Lets verify that this works.. If you'd like to see the steps for using a c wrapper and compiling options to test shellcode, feel free to take a look at the first 2 posts for my SLAE solutions, Shell Bind TCP and Shell Reverse TCP.
 
