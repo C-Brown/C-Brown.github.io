@@ -12,7 +12,7 @@ Googling around looking for an implementation for AES in C comes up quickly with
 
 [https://github.com/kokke/tiny-AES-c](https://github.com/kokke/tiny-AES-c)
 
-This is perfect for this so that we don't have to do any heavy lifting here.  All that needs to be done is a few calls to the already written functions and we're set.  This even allows AES128, AES192, and AES256.
+This implementation is perfect for what the goal is for this.  It will make it so that we don't have to do any heavy lifting for the solution.  All that needs to be done is a few calls to the already written functions and we're set.  This even allows AES128, AES192, and AES256.
 
 Looking at the header files in aes.h, we want to use AES256, a 32 byte key, which means we will need to define aes256 and comment out the aes128 at line 26.
 ```c
