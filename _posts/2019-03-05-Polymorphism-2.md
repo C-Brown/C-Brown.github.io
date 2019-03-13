@@ -89,7 +89,7 @@ We can just skip all these steps and use our original string.  I will push the a
 
 This is using the same strategy that a normal stack based execve call would use combined with the jmp-call-pop string.  Since we already have addresses stored in registers, it makes sense to do this and greatly reduces our shellcode length.
 
-Also note that in the string variable "file" above, that we have removed the second '#'.  Our strategy pushes a null byte to the stack before the string address instead of replacing another '#' with a null.  Our code is currently as follows:
+Also note that in the string variable 'file' above, that we have removed the second '#'.  Our strategy pushes a null byte to the stack before the string address instead of replacing another '#' with a null.  Our code is currently as follows:
 ```nasm
 lea eax, [ebx+0xf]  ; get address of '-F'
 push edx            ; null terminate the struct
@@ -103,7 +103,7 @@ mov eax, edx
 mov al, 0xb
 int 0x80
 ```
-Let's build it and run it.  The objdump seems to be missing a few bytes in the string from /sbin/iptables.   I had to go in a manually insert the 'sb' from sbin and the 'a' from iptables, then it worked as expected.  This may have been an issue with the objdump command that was provided in the video.  It was mentioned that one of the cut command options can cause problems if the dump has large combinations of opcodes in 1 line.  I went ahead and inserted the bytes on my own but may go back to see if changing the command a bit will get it to work at another time.
+Let's build it and run it.  The objdump seems to be missing a few bytes in the string from /sbin/iptables.   I decided to manually insert the 'sb' from sbin and the 'a' from iptables, then it worked as expected.  This may have been an issue with the objdump command that I was using from the course video.  This is mentioned in one of the videos and quickly touches on why it happens.  It was mentioned that one of the cut command options can cause problems if the dump has large combinations of opcodes in 1 line.  I went ahead and inserted the bytes on my own but may go back to see if changing the command a bit will get it to work at another time.
 
 The final product has reduced the shellcode by 26%! Let's compare the shellcode side by side.
 ```nasm
@@ -133,4 +133,4 @@ inc esi                                       inc esi
 db 0x23
 ```
 
-With the big reduction in size, I decided to check on exploit-db for any similar shellcode or of similar length.  It turns out that there is only 1 other shellcode that was on there with the same length (none shorter).  The already published shellcode uses a full stack approach so I submitted the shellcode in the hopes that it will get accepted, which it did!  The link is above at the top of this post.
+With the big reduction in size, I decided to check on exploit-db for any similar shellcode with equal or shorter length.  It turns out that there is only 1 other shellcode that was on there with the same length (none shorter).  The already published shellcode uses a full stack approach so I submitted the shellcode in the hopes that it will get accepted, which it did!  The link is above at the top of this post.
