@@ -897,17 +897,31 @@ EAX is set to 0xf:
 So we are preparing our syscall to chmod.
 
 Beginning at 00000004 now -
-
+```
+00000004  52                push edx
+00000005  E80A000000        call dword 0x14
+```
 push EDX followed by a call to 0x14.  
 
 Looking at 0x14 we see an immediate pop, so the assumption is that we are using the call pop method to get the address of a string.  The string will be stored in that address right after the call. 
 
 push EDX shows us that we are null terminating the string that will be pushed to the stack when the call is executed.
-
+```
+00000014  5B                pop ebx
+00000015  68B6010000        push dword 0x1b6
+0000001A  59                pop ecx
+0000001B  CD80              int 0x80
+```
 0x1b6 is then moved into ECX which translates to 438 decimal.  The chmod call from what we use in the terminal is actually octal.  438 decimal translates to 0666 in octal which is what we passed to our shellcode creation! This means that ECX is our permissions number argument.
 
 We should check what the string is from the call pop technique to get a full picture of the functionality. 
-
+```
+0000000A  2F                das
+0000000B  746D              jz 0x7a
+0000000D  702F              jo 0x3e
+0000000F  7368              jnc 0x79
+00000011  647700            fs ja 0x14
+```
 The popped value goes in to the EBX register which will be our first argument for chmod, "pathname".  The bytes for the string are from 0xa down to 0x11 - \x2f\x74\x6D\x70\x2f\x73\x68\x64\x77\x00
 
 Convert the bytes back to ascii to see what the string is.
@@ -918,7 +932,11 @@ Convert the bytes back to ascii to see what the string is.
 As we expected, our string is the path that we provided during shellcode creation.
 
 int 0x80 is called which gives us chmod('/tmp/shdw', 438);
-
+```
+0000001D  6A01              push byte +0x1
+0000001F  58                pop eax
+00000020  CD80              int 0x80
+```
 the last 3 commands issue exit();
 
 And we have finished our analysis!
