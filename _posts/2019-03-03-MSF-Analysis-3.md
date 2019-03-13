@@ -882,21 +882,43 @@ pwoer@ubuntu:~/SLAE/exam_docs$ ls -al /tmp/shdw
 ```
 Just ignore the length 7 output.. The count was cut off because it hit the null bytes in the shellcode.
 
-A quick look over what we see in ndisasm..\
-cdq zeroes out edx, which will be used later.\
-eax is set to 0xf:
+A quick look over what we see in ndisasm..
+```
+00000000  99                cdq
+00000001  6A0F              push byte +0xf
+00000003  58                pop eax
+```
+cdq zeroes out EDX, which will be used later.
+
+EAX is set to 0xf:
 ```
 #define __NR_chmod 15
 ```
-So we are preparing our syscall to chmod.\
-push edx with a call to 0x14.  Looking at 0x14 we see an immediate pop, so the assumption is that we are using the call pop method to get the address of a string stored in the address right after the call. With the push edx we can see that we are null terminating the string at the address that will be pushed to the stack when the call is executed.\
-0x1b6 is then moved into ecx. which translates to 438 decimal.  Our chmod call from what we use in the terminal is actually octal, 438 decimal translates to 0666 in octal which is what we passed in to our shellcode creation! so ecx is our permissions number argument.\
-We should check what the string is from the call pop technique. The pop is in to ebx which will be our first argument for chmod which is pathname.  Our bytes for the string are from 0xa down to 0x11 - \x2f\x74\x6D\x70\x2f\x73\x68\x64\x77\x00
+So we are preparing our syscall to chmod.
+
+Beginning at 00000004 now -
+
+push EDX followed by a call to 0x14.  
+
+Looking at 0x14 we see an immediate pop, so the assumption is that we are using the call pop method to get the address of a string.  The string will be stored in that address right after the call. 
+
+push EDX shows us that we are null terminating the string that will be pushed to the stack when the call is executed.
+
+0x1b6 is then moved into ECX which translates to 438 decimal.  The chmod call from what we use in the terminal is actually octal.  438 decimal translates to 0666 in octal which is what we passed to our shellcode creation! This means that ECX is our permissions number argument.
+
+We should check what the string is from the call pop technique to get a full picture of the functionality. 
+
+The popped value goes in to the EBX register which will be our first argument for chmod, "pathname".  The bytes for the string are from 0xa down to 0x11 - \x2f\x74\x6D\x70\x2f\x73\x68\x64\x77\x00
+
+Convert the bytes back to ascii to see what the string is.
 ```
 >>> binascii.unhexlify('2f746D702f7368647700')
 '/tmp/shdw\x00'
 ```
-As we expected, our string is the path that we provided during shellcode creation!\
-int 0x80 is called which gives us chmod('/tmp/shdw', 438);\
-the last 3 commands issue exit();\
+As we expected, our string is the path that we provided during shellcode creation.
+
+int 0x80 is called which gives us chmod('/tmp/shdw', 438);
+
+the last 3 commands issue exit();
+
 And we have finished our analysis!
