@@ -12,15 +12,15 @@ Googling around looking for an implementation for AES in C comes up quickly with
 
 [https://github.com/kokke/tiny-AES-c](https://github.com/kokke/tiny-AES-c)
 
-This implementation is perfect for what the goal is for this.  It will make it so that we don't have to do any heavy lifting for the solution.  All that needs to be done is a few calls to the already written functions and we're set.  This even allows AES128, AES192, and AES256.
+This implementation is perfect for what the question is.  It will make it so that we don't have to do any heavy lifting for the solution.  All that needs to be done is a few calls to the already written functions and we're set.  This even allows AES128, AES192, and AES256.
 
-Looking at the header files in aes.h, we want to use AES256, a 32 byte key, which means we will need to define aes256 and comment out the aes128 at line 26.
+Looking at the header files in aes.h, we want to use AES256, a 32 byte key, which means we will need to define AES256 and comment out the aes128 at line 26.
 ```c
 //#define AES128 1
 //#define AES192 1
 #define AES256 1
 ```
-There is also a mention that, in order to specify the mode, we will need to define the mode constants before the include if we want to take advantage of that option. If not, all modes are defined and available for use.
+There is also a mention that, in order to specify the mode, we can choose to define the mode constants before the include if we want to take advantage of that option. If not, all modes are defined and available for use.
 ```c
 // #define the macros below to 1/0 to enable/disable the mode of operation.
 //
@@ -43,7 +43,7 @@ There is also a mention that, in order to specify the mode, we will need to defi
 ```
 The implementation uses stdint so we will take advantage of that as well specifying unsigned integers and their size.  For example, uint8_t gives us an 8 bit unsigned integer which is perfect for a bytearray.  
 
-Since we are using CBC mode, lets take a look at the function declarations that we will be using.
+Since we are using CBC mode, let's take a look at the function declarations that we will be using.
 
 CBC uses an initialization vector so we will need to set that.  One nice thing about this implementation is there is the option to set the IV and the context in 1 call - AES_init_ctx_iv.  If needed, you can initialize them in separate calls as well but we don't need to do that here.
 ```c
@@ -65,17 +65,17 @@ void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length);
 
 #endif // #if defined(CBC) && (CBC == 1)
 ```
-So let's build main.. The course video example allows the user to provide the key through input instead of hardcoding it.. So I will go ahead and do that as well.  First thing, just check the length of the key and make sure its 32 bytes.  Then we will need to prepare for our encrypt call.  We need to initialize the context and iv, then call encrypt which takes ctx, buffer, and length.
+So let's build main.. The course video example allows the user to provide the key through input instead of hardcoding it.. So I will go ahead and do that as well.  First thing, just check the length of the key and make sure it's 32 bytes.  Then, we will need to prepare for our encrypt call.  We need to initialize the context and iv, then call encrypt which takes ctx, buffer, and length.
 
-The shellcode length will be sizeof(sc)-1 so we ignore the null terminating byte at the end.  We will just specify uint32_t for the length variable.  For my own debugging, I'm going to add a piece that will output the original shellcode then the encrypted shellcode in order to see the differences.
+The shellcode length will be sizeof(sc)-1 so we ignore the null terminating byte at the end.  We will just specify uint32_t for the length variable.  For my own debugging, I'm going to add a piece that will output the original shellcode then the encrypted shellcode.
 
-Next we will call our own encrypt function that will take the key and length of the shellcode in order to initialize the IV and context, then call tinyAES' encrypt function.
+Next, we will call our own encrypt function that will take the key and length of the shellcode as arguments to initialize the IV and context, then call tinyAES' encrypt function.
 
-In order to print the new encrypted shellcode, I'm going to need to calculate the length of the cipher text which will probably include some padding.  Googling for an easy way to calculate this, I came across:
+In order to print the new encrypted shellcode, I'm going to calculate the length of the cipher text which will probably include some padding.  Googling for an easy way to calculate this, I came across:
 
 [https://crypto.stackexchange.com/questions/54017/can-we-calculate-aes-ciphertext-length-based-on-the-length-of-the-plaintext](https://crypto.stackexchange.com/questions/54017/can-we-calculate-aes-ciphertext-length-based-on-the-length-of-the-plaintext)
 
-Next, we output the newly encrypted shellcode which will go into our decrypt/run program.
+Next, we output the newly encrypted shellcode which will go in to our decrypt/run program.
 ```c
 main(int argc, char* argv[]{
   
@@ -114,13 +114,13 @@ main(int argc, char* argv[]{
 ```
 Now we can use this and create the encrypt function.
 
-The encrypt call for tiny-AES does not return anything so it encrypts the buffer that is passed in.  We can make this function:
+The encrypt call for tiny-AES does not return anything so it encrypts the buffer that is passed in.  We can make this function not have a return value (void):
 
 void encrypt(char* encryptKey, uint32_t length).
 
-First we should initialize what we need in order to make our AES calls. Which includes context, struct AES_ctx ctx, and the IV.
+First, we should initialize what we need in order to make our AES calls. Which includes context, struct AES_ctx ctx, and the IV.
 
-Since this is just a PoC we will just hardcode an IV and get it to work.  Now that we have everything initialized, we call our context and IV initialization function then the encrypt buffer call.
+Since this is just a PoC we will just hardcode an IV and get it to work.  Now that we have everything initialized, we call our context and IV initialization function.  To wrap it all up, the encrypt buffer function is called.
 ```c
 void encrypt(char* encryptKey, uint32_t length){
   struct AES_ctx ctx;
@@ -131,7 +131,7 @@ void encrypt(char* encryptKey, uint32_t length){
   AES_CBC_encrypt_buffer(&ctx, sc, length);
 }
 ```
-Let's put it together and add our start of the file which will add the includes, defines, and our global variable -- the shellcode we will be encrypting.  We will use the execve-stack shellcode from the course content.
+Let's put it together and add our start of the file which will add the includes, defines, and our global variable -- the original shellcode.  We will use the execve-stack shellcode from the course content.
 ```c
 #include <stdio.h>
 #include <stdint.h>	// uint8_t for shellcode, key, and iv
@@ -190,7 +190,7 @@ main(int argc, char* argv[])
 	return 0;
 }
 ```
-Let's compile it and run it.. We need to compile our aes implementation also so that we can have it included in our final product.
+Let's compile it and run it.. We need to include the aes implementation in our compile process so that our calls don't just blindly call something that doesn't exist yet.
 ```
 gcc -c -o aes.o aes.c
 gcc aes_256_crypter.c aes.o aes.h -o aes_256_crypter
@@ -207,13 +207,13 @@ Orig Shellcode:
 Encrypted Shellcode:
 \xAF\x5B\x25\x46\x1C\xE4\x84\x94\xFC\x0F\x32\xDF\x9C\x31\x5D\x2D\xDA\xEF\x55\xC9\x8F\x56\x1F\xC1\x9C\x0C\x3B\x3A\x21\x0D\x61\xD3
 ```
-Now that we have working encryption, it is time to create the program that decrypts the shellcode and passes execution to the unencrypted shellcode so that our execve-stack payload is run.
+Now that we have working encryption, it is time to create the program that decrypts the shellcode and passes execution to the unencrypted shellcode.
 
-This will be very similar to our encryption we will just call the decrypt function instead.
+This will be very similar to our encryption program.  We will just call the decrypt function instead.
 
 First we add our defines, includes, and the encrypted shellcode which were all explained in the encryption program.
 
-Our decrypt functino will take the key and length, same as the encrypt function.  We will initialize the context and initialization vector with AES_init_ctx_iv and then call AES_CBC_decrypt_buffer.
+Our decrypt function will take the key and length, same as the encrypt function.  We will initialize the context and initialization vector with AES_init_ctx_iv and then call AES_CBC_decrypt_buffer.
 
 Our variable initializations are the same, struct AES_ctx ctx.. and the IV which we hardcoded so it will be the same.
 
