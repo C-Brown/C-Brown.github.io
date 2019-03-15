@@ -4,6 +4,16 @@ title: SLAE 7 - Custom Crypter - AES256 in C
 date:   2019-03-07
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The seventh and final question for the SLAE exam is to create a custom cryper like the one made in the "crypters" video from the course.  The requirements are:
+* Create a working custom crypter
+* Free to use any existing encryption schema
+* Can use any programming language
+
 The last challenge is to create a custom crypter.  
 
 First thing that comes to mind as far as symmetric encryption is AES so I'll go ahead and try that.
