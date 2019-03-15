@@ -4,6 +4,16 @@ title: SLAE 3 - Egghunter Shellcode
 date:   2019-02-27
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The third question for the SLAE exam is to create a working EggHunter demo.  The requirements are:
+* Study egghunter shellcode
+* Create a working demo
+* Should be configurable to different payloads
+
 ## Creating an egghunter
 
 In the past I have read about egghunters so I know their purpose and the general idea of how they work but I have never tried to create one or work through actual implementation strategies.  Corelan has a great exploit writing series that involves a piece on egghunters in detail:
