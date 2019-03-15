@@ -4,6 +4,16 @@ title: SLAE 5.3 - Metasploit Payload Analysis chmod
 date:   2019-03-03
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The fifth question for the SLAE exam is to analyze 3 metasploit payloads, this is part 3 of 3 for this question.  The requirements are:
+* Select a linux/x86 payload from msfpayload
+* Use gdb/ndisasm/libemu to dissect the functionality of the shellcode
+* Present the analysis
+
 The 3rd msfvenom payload we will analyze is the linux/x86/chmod payload.  
 ```c
 msfvenom -p linux/x86/chmod FILE=/tmp/shdw MODE=0666 -f c
