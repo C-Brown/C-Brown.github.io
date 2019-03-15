@@ -11,7 +11,7 @@ This blog post has been created for completing the requirements of the SecurityT
 
 The sixth question for the SLAE exam is to create polymorphic versions of 3 shellcodes from Shell-Storm to attempt to beat pattern matching, this is part 1 of 3 for this question.  The requirements are:
 * Select a linux/x86 shellcode from Shell-Storm.org
-* UThe polymorphic versions cannot be larger than 150% of the original shellcode
+* The polymorphic versions cannot be larger than 150% of the original shellcode
 * Bonus points for making it shorter in length
 
 The first piece of shellcode we will try to create a polymorphic version of will be:
