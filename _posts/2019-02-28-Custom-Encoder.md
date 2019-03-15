@@ -4,6 +4,15 @@ title: SLAE 4 - Custom Encoder
 date:   2019-02-28
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The fourth question for the SLAE exam is to create a custom encoder.  The requirements are:
+* Create a custom encoding scheme like the "insertion encoder" from the course
+* Show a PoC that uses execve-stack as the shellcode to encode with the schema and execute it
+
 ## Creating a custom encoder
 
 A custom encoder is used in order to evade antivirus detection.  If a signature is made to detect a specific portion of code, then an encoder will obfuscate the code so that it does not recognize it as the known suspicious/malicious behavior.
