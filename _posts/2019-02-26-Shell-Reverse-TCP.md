@@ -4,6 +4,16 @@ title: SLAE 2 - Shell Reverse TCP Shellcode
 date:   2019-02-26
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The second question for the SLAE exam is to create a Reverse Shell.  The requirements are:
+* Reverse connects to a configured IP and port
+* Execs shell on incoming connection
+* IP and Port should be easily configurable
+
 ## Creating Shell Reverse TCP Shellcode
 
 The proper steps for a Reverse Shell are as follows:
