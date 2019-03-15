@@ -4,6 +4,16 @@ title: SLAE 6.2 - Shell-Storm Polymorphism - iptables -F
 date:   2019-03-05
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The sixth question for the SLAE exam is to create polymorphic versions of 3 shellcodes from Shell-Storm to attempt to beat pattern matching, this is part 2 of 3 for this question.  The requirements are:
+* Select a linux/x86 shellcode from Shell-Storm.org
+* UThe polymorphic versions cannot be larger than 150% of the original shellcode
+* Bonus points for making it shorter in length
+
 The version that I created from this post was submitted to and accepted by exploit-db.com.  The URL is:
 [iptables -f shellcode](https://www.exploit-db.com/shellcodes/46491)
 
