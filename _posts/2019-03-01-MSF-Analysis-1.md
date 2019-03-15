@@ -4,6 +4,16 @@ title: SLAE 5.1 - Metasploit Payload Analysis Exec
 date:   2019-03-01
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The fifth question for the SLAE exam is to analyze 3 metasploit payloads, this is part 1 of 3 for this question.  The requirements are:
+* Select a linux/x86 payload from msfpayload
+* Use gdb/ndisasm/libemu to dissect the functionality of the shellcode
+* Present the analysis
+
 The first metasploit payload for linux x86 that we will analyze will be:
 
 linux/x86/exec
