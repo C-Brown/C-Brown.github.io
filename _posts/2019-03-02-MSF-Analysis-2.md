@@ -4,6 +4,16 @@ title: SLAE 5.2 - Metasploit Payload Analysis adduser
 date:   2019-03-02
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The fifth question for the SLAE exam is to analyze 3 metasploit payloads, this is part 2 of 3 for this question.  The requirements are:
+* Select a linux/x86 payload from msfpayload
+* Use gdb/ndisasm/libemu to dissect the functionality of the shellcode
+* Present the analysis
+
 The 2nd metasploit payload we will analyze will be linux/x86/adduser.
 
 Time to set up the payload options and output the shellcode with msfvenom.
