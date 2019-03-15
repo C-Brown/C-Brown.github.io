@@ -4,6 +4,16 @@ title: SLAE 1 - Shell Bind TCP Shellcode
 date:   2019-02-25
 categories: [SLAE, Assembly]
 ---
+
+This blog post has been created for completing the requirements of the SecurityTube Linux Assembly Expert certification:
+
+[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/](http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert/)
+
+The first question for the SLAE exam is to create a Bind Shell.  The requirements are:
+* Binds to a port
+* Execs shell on incoming connection
+* Port number should be easily configurable
+
 The proper steps for a Bind Shell are as follows:
 1. [C - Creating the socket](#creating-the-socket)
 2. [C - Bind the socket to an IP and port](#bind-the-socket-to-an-ip-and-port)
