@@ -1,6 +1,6 @@
 ---
 layout: post
-title: SLAE 6.3 - Shell-Storm Polymorphism - force reboot
+title: SLAE 6.3 - Shell-Storm Polymorphism - edit sudoers
 date:   2019-03-06
 categories: [SLAE, Assembly]
 ---
